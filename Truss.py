@@ -14,6 +14,7 @@ restaindDoF = [1,2,5,6]
 def calculateKg(E,A,L,theta):
     c = math.cos(theta)
     s = math.sin(theta) 
+    
 
 
     K11 = (E*A/L)*np.array([[c**2,c*s],[c*s,s**2]])

@@ -9,4 +9,4 @@ x,y = nodes.T
 plt.scatter(x,y)
 plt.show()
 
-print('test')
+print('test23')
