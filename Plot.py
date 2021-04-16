@@ -9,7 +9,7 @@ x,y = nodes.T
 plt.scatter(x,y)
 plt.show()
 
-Tekst = "Eureka"
+Tekst = "Eureka2"
 
 print('test23')
 
