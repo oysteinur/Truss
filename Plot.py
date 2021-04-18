@@ -5,8 +5,12 @@ from matplotlib import pyplot as plt
 import copy
 from Fagverk import *
 
+
+fig = plt.figure()
 x,y = nodes.T
 plt.scatter(x,y)
-plt.show()
+plt.savefig('Konstruksjon.png')
+
+#plt.show()
 
 
