@@ -200,13 +200,3 @@ for n, mbr in enumerate(members):
     mbrForces = np.append(mbrForces,F_axial)
 
     print(mbrForces)
-
-
-
-
-
-"""
-U2 = Ks.I*np.array([[0],[-150000]])
-U_x2 = U2[0,0]
-U_y2 = U2[1,0]
-"""
