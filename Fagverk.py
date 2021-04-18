@@ -139,4 +139,22 @@ for m,mbr in enumerate(members):
     Kp[ja:jb+1,ia:ib+1] = Kp[ja:jb+1,ia:ib+1] + K21
     Kp[ja:jb+1,ja:jb+1] = Kp[ja:jb+1,ja:jb+1] + K22
 
+
+# Extract the structure stiffness matrix, Ks
+#---------------------------------------
+restrainedIndex = [x-1 for x in restrainedDoF] #Index for each restrained DoF (lists starts at 0)
+
+# Reduce to structure stiffness matrix by deleting thew rows in and columns for restrained DoF
+Ks = np.delete(Kp,restrainedIndex, 0) # Delete rows
+Ks = np.delete(Ks,restrainedIndex, 1) # Delete columns
+Ks = np.matrix(Ks) # convert from Numpy array to a matrix
+
+# 4. Solve unknown displacements
+U2 = Ks.I*np.array([[0],[-150000]])
+U_x2 = U2[0,0]
+U_y2 = U2[1,0]
+
+
+
+
 print(np.round(Kp))
