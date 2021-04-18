@@ -30,7 +30,7 @@ members = np.array([[1,2],
                    [5,6]])
 
 # Supports
-restrainedDof = [7,8,11,12] # The degrees of freedom restained by supports
+restrainedDoF = [7,8,11,12] # The degrees of freedom restained by supports
 
 # Loading
 forceVector = np.array([[0,-200000,0,0,0,0,0,0,0,0,0,0]]) # Vector of externally applied loads
@@ -149,12 +149,13 @@ Ks = np.delete(Kp,restrainedIndex, 0) # Delete rows
 Ks = np.delete(Ks,restrainedIndex, 1) # Delete columns
 Ks = np.matrix(Ks) # convert from Numpy array to a matrix
 
+"""
 # 4. Solve unknown displacements
 U2 = Ks.I*np.array([[0],[-150000]])
 U_x2 = U2[0,0]
 U_y2 = U2[1,0]
+"""
 
 
 
-
-print(np.round(Kp))
+print(np.round(Ks))
