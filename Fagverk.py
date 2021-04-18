@@ -7,7 +7,7 @@ import copy
 # INPUT DATA
 # -------------------
 # Constants
-E = 200*10^9  #[N/mm2]
+E = 200*10**9  #[N/m2]
 A = 0.005 # [m2]
 xFac = 50 # Scale factor for plotted displacement
 
@@ -30,10 +30,10 @@ members = np.array([[1,2],
                    [5,6]])
 
 # Supports
-restrainedDoF = [7,8,11,12] # The degrees of freedom restained by supports
+restrainedDoF = [7,8,11,12] # The degrees of freedom restrained by supports
 
 # Loading
-forceVector = np.array([[0,-200000,0,0,0,0,0,0,0,0,0,0]]) # Vector of externally applied loads
+forceVector = np.array([[0,-200000,0,0,0,0,0,0,0,0,0,0]]).T # Vector of externally applied loads
 
 # END OF DATA ENTRY
 # -------------------
@@ -73,28 +73,28 @@ def memberOrientation(memberNo):
     elif (0<dx and 0<dy):            
         #0<theta<90                   
         refVector = np.array([1,0])                         #Vector describing the positive x-axis
-        theta = math.acos(refVector.dot(memberVector)/mag)  #Standard formula for angle between 2 vectors
+        theta = math.acos(refVector.dot(memberVector)/(mag))  #Standard formula for angle between 2 vectors
 
-    elif (dx<0 and 0<dy):  
+    elif (dx<0 and dy>0):  
         #90<theta<180                                 
         refVector = np.array([0,1])                         #Vector describing the positive y-axis
-        theta = math.acos(refVector.dot(memberVector)/mag) + (math.pi/2)
+        theta = math.acos(refVector.dot(memberVector)/(mag)) + (math.pi/2)
 
     elif (dx<0 and dy<0):         
         #180<theta<270                         
         refVector = np.array([-1,0])                         #Vector describing the positive y-axis
-        theta = math.acos(refVector.dot(memberVector)/mag) + (math.pi)
+        theta = math.acos(refVector.dot(memberVector)/(mag)) + (math.pi)
 
     elif (0<dx and dy<0):            
         #270<theta<360                       
         refVector = np.array([0,-1])                         #Vector describing the positive y-axis
-        theta = math.acos(refVector.dot(memberVector)/mag) + (3*math.pi/2)
+        theta = math.acos(refVector.dot(memberVector)/(mag)) + (3*math.pi/2)
 
     return [theta, mag]
 
 # Calculate orientation and length for each member and store
 orientations = np.array([]) # Initialise an array to hold orientations
-lengths  = np.array([]) # Initialise an arry to hold member lengths
+lengths  = np.array([]) # Initialise an array to hold member lengths
 
 for n, mbr in enumerate(members):
     [angle, length] = memberOrientation(n+1) # Member 1, not index 0, because first n = 0
@@ -114,17 +114,17 @@ def calculateKg(memberNo):
     K11 = (E*A/mag)*np.array([[c**2,c*s],[c*s,s**2]])
     K12 = (E*A/mag)*np.array([[-c**2,-c*s],[-c*s,-s**2]])
     K21 = (E*A/mag)*np.array([[-c**2,-c*s],[-c*s,-s**2]])
-    K21 = (E*A/mag)*np.array([[c**2,c*s],[c*s,s**2]])
+    K22 = (E*A/mag)*np.array([[c**2,c*s],[c*s,s**2]])
 
-    return[K11,K12,K21,K21]
+    return[K11, K12, K21, K22]
 
 # Build primart stiffness matrix, Kp
 #-----------------------------------
 nDoF = np.amax(members)*2 # Total numbers of degrees of freedom in the problem
 Kp = np.zeros([nDoF,nDoF]) # Initialising the primary stiffness matrix
 
-for m,mbr in enumerate(members):
-    [K11,K12,K21,K22] = calculateKg(n+1)
+for m, mbr in enumerate(members):
+    [K11, K12, K21, K22] = calculateKg(m+1)
 
     node_i = mbr[0] # Node number for node i of this member
     node_j = mbr[1] # Node number for node j of this member
@@ -139,7 +139,6 @@ for m,mbr in enumerate(members):
     Kp[ja:jb+1,ia:ib+1] = Kp[ja:jb+1,ia:ib+1] + K21
     Kp[ja:jb+1,ja:jb+1] = Kp[ja:jb+1,ja:jb+1] + K22
 
-
 # Extract the structure stiffness matrix, Ks
 #---------------------------------------
 restrainedIndex = [x-1 for x in restrainedDoF] #Index for each restrained DoF (lists starts at 0)
@@ -149,13 +148,65 @@ Ks = np.delete(Kp,restrainedIndex, 0) # Delete rows
 Ks = np.delete(Ks,restrainedIndex, 1) # Delete columns
 Ks = np.matrix(Ks) # convert from Numpy array to a matrix
 
+
+# Solve unknown displacements
+# -------------------------------
+forcevectorRed = copy.copy(forceVector)
+forcevectorRed = np.delete(forcevectorRed, restrainedIndex, 0)
+U = Ks.I*forcevectorRed
+
+
+# Solve for reactions
+# -------------------------------
+#Construct the global displacement vector
+UG = np.zeros(nDoF)
+
+c = 0
+for i in np.arange(nDoF):
+    if i in restrainedIndex:
+        UG[i] = 0
+    else:
+        UG[i] = U[c]
+        c=c+1
+
+UG = np.array([UG]).T
+FG = np.matmul(Kp,UG)
+
+# Solve for member forces
+#--------------------------
+mbrForces = np.array([]) # Initialize an array to hold member forces
+
+for n, mbr in enumerate(members):
+    theta = orientations[n]
+    mag = lengths[n]
+
+    node_i = mbr[0]
+    node_j = mbr[1]
+
+    ia = 2*node_i-2
+    ib = 2*node_i-1
+    ja = 2*node_j-2
+    jb = 2*node_j-1
+
+    # Transformation matrix
+    c = math.cos(theta)
+    s = math.sin(theta) 
+    T = np.array([[c,s,0,0],[0,0,c,s]])
+
+    disp = np.array([[ UG[ia], UG[ib], UG[ja], UG[jb] ]]).T
+    disp_local = np.matmul(T,disp)[0]
+   
+    F_axial = (A*E/mag)*(disp_local[1]-disp_local[0]) # Axial load
+    mbrForces = np.append(mbrForces,F_axial)
+
+    print(mbrForces)
+
+
+
+
+
 """
-# 4. Solve unknown displacements
 U2 = Ks.I*np.array([[0],[-150000]])
 U_x2 = U2[0,0]
 U_y2 = U2[1,0]
 """
-
-
-
-print(np.round(Ks))
