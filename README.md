@@ -1,2 +1,2 @@
 # Truss
-Program for å løse fagverkskonstruksjoner.
+Program for å beregne fagverkskonstruksjoner.
