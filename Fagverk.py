@@ -9,34 +9,43 @@ import copy
 # Constants
 E = 200*10**9  #[N/m2]
 A = 0.005 # [m2]
-xFac = 50 # Scale factor for plotted displacement
+xFac = 100 # Scale factor for plotted displacement
 
 # Nodal coordinates [x,y], in ascending node order
 nodes = np.array([[0,0],
-                [5,8.66],
-                [15,8.66],
-                [20,0],
-                [10,0],
-                [10,-5]])
+                [4,0],
+                [8,0],
+                [12,0],
+                [10,3],
+                [6,3],
+                [2,3]])
 
 # Members [node_i, node_j]
 members = np.array([[1,2],
                    [2,3],
                    [3,4],
                    [4,5],
-                   [1,5],
-                   [2,5],
-                   [3,5],
-                   [5,6]])
+                   [5,6],
+                   [6,7],
+                   [7,1],
+                   [7,2],
+                   [2,6],
+                   [6,3],
+                   [3,5]])
 
 # Supports
-restrainedDoF = [7,8,11,12] # The degrees of freedom restrained by supports
+restrainedDoF = [1,2,10] # The degrees of freedom restrained by supports
 
 # Loading
-forceVector = np.array([[0,-200000,0,0,0,0,0,0,0,0,0,0]]).T # Vector of externally applied loads
-
+#forceVector = np.array([[0,-200000,0,0,0,0,0,0,0,0,0,0]]).T # Vector of externally applied loads
+forceVector = np.array([np.zeros(14)]).T
+#forceVector[3] = -500000
+forceVector[5] = -500000
+#forceVector[7] = -100000
 # END OF DATA ENTRY
 # -------------------
+
+
 
 # Calculate member orientation and length
 #----------------------------------------
@@ -143,7 +152,7 @@ for m, mbr in enumerate(members):
 #---------------------------------------
 restrainedIndex = [x-1 for x in restrainedDoF] #Index for each restrained DoF (lists starts at 0)
 
-# Reduce to structure stiffness matrix by deleting thew rows in and columns for restrained DoF
+# Reduce to structure stiffness matrix by deleting the rows and columns for restrained DoF
 Ks = np.delete(Kp,restrainedIndex, 0) # Delete rows
 Ks = np.delete(Ks,restrainedIndex, 1) # Delete columns
 Ks = np.matrix(Ks) # convert from Numpy array to a matrix
@@ -199,4 +208,39 @@ for n, mbr in enumerate(members):
     F_axial = (A*E/mag)*(disp_local[1]-disp_local[0]) # Axial load
     mbrForces = np.append(mbrForces,F_axial)
 
-    print(mbrForces)
+    
+# Plotting
+fig = plt.figure()
+axes = fig.add_axes([0,0,1,1])
+fig.gca().set_aspect('equal', adjustable ='box')
+
+# Plot members
+for mbr in members:
+    node_i = mbr[0] # Node number for node i of this member
+    node_j = mbr[1] # Node number for node j of this member
+
+    ix = nodes[node_i-1,0] # x-coord of node i of this member
+    iy = nodes[node_i-1,1] # y-coord of node i of this member
+    jx = nodes[node_j-1,0] # x-coord of node j of this member
+    jy = nodes[node_j-1,1] # y-coord of node j of this member
+
+    # Index for DoF for this member
+    ia = 2*node_i-2 # Horisozontal DoF at node i for this member
+    ib = 2*node_i-1 # Vertical DoF at node i for this member
+    ja = 2*node_j-2 # Horisozontal DoF at node j for this member
+    jb = 2*node_j-1 # Vertical DoF at node j for this member
+
+    axes.plot([ix,jx],[iy,jy],'b')
+    axes.plot([ix + UG[ia,0]*xFac, jx + UG[ja,0]*xFac], [iy + UG[ib,0]*xFac,jy + UG[jb,0]*xFac],'--r')
+
+# Plot nodes 
+for node in nodes:
+    axes.plot([node[0]],[node[1]],'bo')
+
+axes.set_xlabel('Lengde [m]')
+axes.set_ylabel('Lengde [m]')
+axes.set_title('Nedbøyning')
+axes.legend('upper right',['udeformert konstruksjon'])
+
+
+plt.show()
